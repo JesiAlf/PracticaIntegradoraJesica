@@ -3,55 +3,68 @@ import fs from "fs";
 export class ProductManager {
   constructor() {
     this.products = [];
-    this.path = "./data/products.json";
+    this.path = "";
   }
   
-  addProduct(product) {
+  async addProduct(newProduct) {
     //obtengo los archivos mandando a llamar al getProduct para q mi arreglo de getproduct este acrttualizado y verificar que el codigo no se repita
-    this.getProduct();
-    //establezco y desestructuro el objeto con las variables que contiene
-    const { title, description, price, thumbnail, code, stock } = product;
-    //para asegurar que todos los campos esten, establecemos una condición, que tdos los campos existan o que retorne un mensaje
-    //usamos el or || para que entren todos los camposmpor si falta uno solo
-    if (!title || !description || !price || !thumbnail || !code || !stock) {
-      console.log("All fields are required");
-      return;
-    }
+    await this.getProduct();
+  
     //si dentro del arreglo tengo un producto con el mismo codigo, manda un mensaje de error
-    if (this.products.some((p) => p.code === code)) {
-      console.log("the code already exists");
-      return;
+    if (
+    this.products.some((product) => product.code === newProduct.code) &&
+    this.products.some((product) => product.title === newProduct.title)
+    ){
+        console.log(
+          `El producto "${newProduct.title}" ya existe, no se agregará a la lista.`
+        );
+        return Promise.reject(
+          `El producto "${newProduct.title}" ya existe, no se agregará a la lista.`
+        );
+      }
+    //Si el codigo del producto ya existe rechaza la promesa y manda un mensaje para que se cambie el código.
+    if (this.products.some((product) => product.code === newProduct.code)){
+        console.log(
+          `El codigo "${newProduct.code}" ya existe, favor de cambiarlo en el producto "${newProduct.title}".`
+        );
+        return Promise.reject(
+          `El codigo "${newProduct.code}" ya existe, favor de cambiarlo en el producto "${newProduct.title}".`
+        );
     }
-    
+    //crear el id para un nuevo producto
     const id = this.getId();
+    const product = { id, ...newProduct,status };
     //coloco en el arreglo el objeto producto desparramado mas el id
-    this.products.push({ id, ...product });
+    this.products.push(product);
 
     try {
-      fs.writeFileSync(this.path, JSON.stringify(this.products));
-      console.log("saved data successfully");
+      await fs.writeFile(this.path, JSON.stringify(this.products));
+      return product;
+      //console.log("saved data successfully");
     } catch (error) {
       console.error("An error occurred while reading the files", error);
     }
   }
 
-   getProduct() {
+  async getProduct() {
     try {
-      const data = fs.readFileSync(this.path, "utf8");
+        //lectura el archivo json
+      const data = await fs.promises.readFile(this.path, "utf8");
       //el archivo como va a contener texto, tengo que parcearlo para que vuelva a hacer un arreglo de objetos y se lo asignamos a nuestros arreglo de productos el que se sobreescribe con lo q tenga el archivo y se actualiza, cada vez q se llame al getproducts
-      JSON.parse(data);
-      return this.products;
+      this.products = JSON.parse(data);
 
     } catch (error) {
-      console.log("An error occurred while reading the files", error);
+      console.error("An error occurred while reading the files", error);
     return [];
     }
+    return this.products;
   }
+  
 
-  getProductById(pid) {
-    this.getProduct();
+  async getProductById(id) {
+   await this.getProduct();
 
-    const product = this.products.find((p) => p.id === pid);
+    const product = this.products.find((product) => product.id === id);
     if (product === undefined) {
       console.log(`the product with the ID ${id} not exist`);
     } else return product;
@@ -71,8 +84,8 @@ export class ProductManager {
     return LId;
   }
 
-  updateProduct(id, productoActual) {
-    this.getProduct();
+  async updateProduct(id, productoActual) {
+    await this.getProduct();
     if (this.products.find((product) => product.id === id) === undefined) {
       console.error(`the ID ${id} noy exist`);
       return;
@@ -81,15 +94,16 @@ export class ProductManager {
     this.products[indice] = { id, ...productoActual };
 
     try {
-      fs.writeFileSync(this.path, JSON.stringify(this.products));
-      console.log("field actually");
+      await fs.writeFile(this.path, JSON.stringify(this.products));
+      return newProduct;
+      //console.log("field actually");
     } catch (error) {
       console.error("the field didnt actually", error);
     }
   }
 
-  deleteProduct(id) {
-    this.getProduct();
+  async deleteProduct(id) {
+   await this.getProduct();
     if (this.products.find((product) => product.id === id) === undefined) {
       console.error(`the ID ${id} noy exist`);
       return;
@@ -98,10 +112,11 @@ export class ProductManager {
     const indice = this.products.findIndex((product) => product.id === id);
     this.products.splice(indice, 1);
     try {
-      fs.writeFileSync(this.path, JSON.stringify(this.products));
+      await fs.writeFile(this.path, JSON.stringify(this.products));
       console.log("delete product");
     } catch (error) {
-      console.log("mistake to delete", error);
+      console.error("mistake to delete", error);
     }
   }
 }
+

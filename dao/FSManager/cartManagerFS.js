@@ -1,23 +1,43 @@
 import fs from "fs";
 import crypto from "node:crypto";
-//import {productManager}  from "../../../src/app.js";
-
+//import {ProductManager}  from "../../app.js";
 export class CartManager{
-  constructor(){
-    this.path="./src/data/carts.json";
+  constructor(path){
+    this.path=path;
     this.carts=[];
   };
-
-  getCart(){
+  async getCartsFromDB() {
     try {
-      const data=fs.readFileSync(this.path, "utf8");
-      this.carts=JSON.parse(data);
-      console.log("Las carts se cargaron exitosamente:", this.carts)
+      //Lee el archivo
+      const data = await fs.promises.readFile(this.path, "utf8");
+      this.carts = JSON.parse(data);
+      return null;
     } catch (error) {
-      console.error("error de carts:", error);
-      return[];
+      if (error.errno === -4058) {
+        console.error("El archivo no existe.");
+        return null;
       }
-};
+      else {
+        console.error("Error al leer el archivo.", error);
+        return Promise.reject("Error al leer el archivo, " + error);
+      }
+    }
+  }
+  async getCart(id) {
+    //Obtener los datos de la "base de datos" 
+    const resultDB = await this.getCartsFromDB();
+    
+    if (resultDB !== null) return resultDB;
+
+    //Busca en el arreglo de carritos si existe un carrito con el id del parámetro
+    const cart = this.carts.find((c) => c.id === id);
+    if (!cart) {
+      //Si no existe el carrito, rechaza la promesa-
+      console.error("El carrito no existe");
+      return Promise.reject("El carrito no existe");
+    }
+    return cart;
+  }
 
   addCart(){
     //this.getCart()
@@ -51,53 +71,7 @@ export class CartManager{
     }
   };
 
-  addProduct(cId,pId) {
-    this.getCart();
-    const cart = this.carts.find((cart) => cart.id === cId);
-    if (!cart) {
-      console.log(`the cart with the ID ${cId} not find`);
-      return;
-    }
-
-    const productValid= this.products.find((p)=>p.id===pId);
-    if (!productValid) {
-      console.log("the code already exists");
-      return;
-    }
-
-    cart.products.push({ pid : pId});
-
-    try {
-      fs.writeFileSync(this.path, JSON.stringify(this.carts,null,2));
-      console.log("saved data successfully");
-    } catch (error) {
-      console.error("An error occurred while reading the files", error);
-    }
-  };
-
-  deleteProduct(cId, pId) {
-    this.getCart();
-    if (this.carts.find((cart) => cart.id === cId) === undefined) {
-      console.error(`the ID ${cId} not exist`);
-      return;
-    }
-    const indice= cart.products.findIndex((product) => product.pid === pId);
-    if (indice === -1) {
-      console.error(`El producto con ID ${pId} no existe en el carrito`);
-      return;
-    }
-
-    cart.products.splice(indice, 1);
-    /*const indice = this.carts.findIndex((cart) => cart.id === id);
-    this.carts.splice(indice, 1);*/
-    try {
-      fs.writeFileSync(this.path, JSON.stringify(this.carts,null,2));
-      console.log("delete product");
-    } catch (error) {
-      console.log("mistake to delete", error);
-    }
-  };
-
+ 
   deleteCart (cId){
     this.getCart();
     if (this.carts.find((cart) => cart.id === cId) === undefined) {
@@ -114,5 +88,18 @@ export class CartManager{
       console.log("mistake to delete", error);
     }
   };
+  getId() {
+    this.LId = this.getLId();
+    if (this.LId === 0) this.LId = 1;
+    else this.LId++;
+    return this.LId;
+  }
+
+  getLId() {
+    if (this.products.length === 0) return 0;
+    const LId = this.products[this.products.length - 1].id;
+    console.log("the last id is ", LId);
+    return LId;
+  }
 
 }
