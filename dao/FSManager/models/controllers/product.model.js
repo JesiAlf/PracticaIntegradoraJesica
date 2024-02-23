@@ -2,10 +2,6 @@ import mongoose from "mongoose";
 
 const productsCollection = "products";
 
-/**
- * Schema de la coleccion products
- * contiene todos los elementos del producto.
- */
 const productSchema = new mongoose.Schema({
   title: { type: String, required: true, max: 150 },
   description: { type: String, required: true, max: 300 },
