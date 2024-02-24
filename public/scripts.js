@@ -27,7 +27,7 @@ document.getElementById("chat-form").addEventListener("submit", (e) => {
 
     const messageInput = document.getElementById("message")
 
-    console.log("Soy mensaje", message)
+    console.log(" mensaje", message)
     socket.emit("message", {username: user , message: messageInput.value})
     messageInput.value = ""
 })
